@@ -12,6 +12,7 @@ include = "src"
 python = "^3.13"
 fastapi = {extras = ["standard"], version = "^0.115.6"}
 pydantic-settings = "^2.7.0"
+coloredlogs = "^15.0.1"
 
 [tool.poetry.scripts]
 api = "src.run:run"

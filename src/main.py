@@ -1,6 +1,6 @@
 import json
-from typing import Any, Dict
-from sqlalchemy import Tuple, text
+from sqlalchemy import text
+from typing import Any, Dict, Tuple
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse

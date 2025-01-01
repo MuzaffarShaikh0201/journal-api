@@ -1,16 +1,40 @@
 import json
+from typing import Any, Dict
+from sqlalchemy import Tuple, text
 from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 
-from .routes import home
+from .routes import auth, utility
 from .core.config import settings
 from .middleware.logging import logger
+from .database.connect import temp_session
 
-app = FastAPI()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting application...")
+    try:
+        logger.info("Connecting to the database...")
+
+        with temp_session() as session:
+            session.execute(text("SELECT 1"))
+            session.close()
+
+        logger.info("Connected to the database successfully.")
+        logger.info("Application started successfully.")
+        yield
+    except Exception as e:
+        logger.error(f"Failed to connect to the database: {e}")
+        raise e
+    finally:
+        logger.info("Application stopped successfully.")
+
+
+app = FastAPI(lifespan=lifespan)
 
 # Set up CORS (Cross-Origin Resource Sharing)
 origins = ["*"]
@@ -46,7 +70,8 @@ app.add_middleware(
 
 
 # Routes
-app.include_router(home.router)
+app.include_router(utility.router)
+app.include_router(auth.router)
 
 
 # Custom validation error handler
@@ -58,7 +83,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     response = {
         "success": False,
         "status_code": 422,
-        "message": "Validation Error",
+        "message": "Validation Error(s)",
         "data": None,
         "error": {"code": "VALIDATION_ERROR", "details": error_details},
         "meta": None,
@@ -89,111 +114,138 @@ async def internal_server_error_handler(request: Request, exc: Exception):
 
 # Custom OpenAPI schema metadata
 summary = "Backend services for Journal App."
-description = "`Apart from the response codes specified in each API, the API server may respond with certain 4xx and 5xx error codes which are related to common API Gateway behaviors.`"
+description = (
+    "`Apart from the response codes specified in each API, the API server may respond with other common "
+    "responses based on standard API behavior.`"
+)
 
 tags_metadata = [
     {
         "name": "Utility APIs",
-        "description": "The Utility APIs contain endpoints that serve operational or system-level purposes. These routes are not directly related to the core business logic of the API but are essential for overall functionality, monitoring, and accessibility.",
-    }
+        "description": (
+            "The Utility APIs contain endpoints that serve operational or system-level purposes. "
+            "These routes are not directly related to the core business logic of the API but "
+            "are essential for overall functionality, monitoring, and accessibility."
+        ),
+    },
+    {
+        "name": "Auth APIs",
+        "description": (
+            "The Auth APIs are used for user authentication and authorization. "
+            "These endpoints handle user login, registration, and logout functionalities."
+        ),
+    },
 ]
 
 
-# Helper function to generate code samples for curl and Python
-def get_code_samples(route, method):
-    nl = "\n"  # new line character to use in f-strings.
-    header = {"Content-Type": "application/json"}  # Default header for JSON payload
-    cookies = {}
-    BASE_URL = settings.BASE_URL
+# Helper function to extract headers and payload from OpenAPI operation
+def extract_headers_and_payload(
+    operation: Dict[str, Any], components: Dict[str, Any]
+) -> Tuple[Dict[str, str], Dict[str, Any]]:
+    headers = {
+        param["name"]: (
+            param["schema"].get("type")
+            or (
+                "Bearer <token>"
+                if param["name"] == "Authorization"
+                else " | ".join(v["type"] for v in param["schema"].get("anyOf", []))
+            )
+        )
+        for param in operation.get("parameters", [])
+        if param.get("in") == "header"
+    }
 
-    # Check if the method is one that supports body (POST, PUT, DELETE, GET)
-    if method in ["POST", "PUT", "DELETE", "PATCH", "GET"]:
-        try:
-            # Check if the route has a body schema to generate an example
-            if route.body_field:
-                example_schema = getattr(route.body_field.type_, "Config", None)
-                if example_schema:
-                    example_schema = example_schema.schema_extra.get("example", {})
-                else:
-                    example_schema = {}
-            else:
-                example_schema = {}
+    payload_example = {}
+    request_body = operation.get("requestBody", {}).get("content", {})
+    for content_type, content in request_body.items():
+        if content_type in ("application/json", "application/x-www-form-urlencoded"):
+            headers["Content-Type"] = content_type
+            schema_ref = content["schema"].get("$ref", "")
+            schema_name = schema_ref.split("/")[-1] if schema_ref else None
+            if schema_name:
+                properties = (
+                    components["schemas"].get(schema_name, {}).get("properties", {})
+                )
+                for key, value in properties.items():
+                    if "anyOf" in value:
+                        payload_example[key] = " | ".join(
+                            v["type"] for v in value["anyOf"]
+                        )
+                    else:
+                        payload_example[key] = value.get("type", "")
+    return headers, payload_example
 
-            # Prepare the payload
-            payload = json.dumps(example_schema) if example_schema else "{}"
-            data_raw = f"--data-raw '{payload}'" if example_schema else ""
-        except Exception as e:
-            print(f"Path:{route.path} Error:{e}")
-            payload = "{}"
-            data_raw = ""
-    else:
-        payload = "{}"
-        data_raw = ""
 
-    # Construct cURL and Python code samples
-    curl_sample = f"curl --location {nl} --request {method} '{BASE_URL}{route.path}' {nl} --header 'Content-Type: application/json' {nl} {data_raw}"
+# Helper function to generate code samples
+def generate_code_samples(
+    path: str, method: str, operation: Dict[str, Any], components: Dict[str, Any]
+) -> None:
+    nl = "\n"
+    tl = "    "
+    base_url = settings.BASE_URL
 
-    python_sample = f"""import requests
-        import json
-        url = '{BASE_URL}{route.path}'
-        payload = {json.dumps(example_schema)}  # JSON payload
-        headers = {json.dumps({'Content-Type': 'application/json'})}
-        response = requests.request('{method}', url, headers=headers, data=payload)
-        print(response.text)
-        """
+    headers, payload_example = extract_headers_and_payload(operation, components)
 
-    return [
-        {
-            "lang": "Shell",
-            "source": curl_sample,
-            "label": "Curl",
-        },
-        {
-            "lang": "Python",
-            "source": python_sample,
-            "label": "Python3",
-        },
+    # Constructing query string
+    query_params = [
+        param for param in operation.get("parameters", []) if param.get("in") == "query"
+    ]
+    query_string = "&".join(f"{param['name']}={{value}}" for param in query_params)
+    query_string = f"?{query_string}" if query_string else ""
+
+    # Generating cURL example
+    curl_headers = "".join(f"{tl}-H '{k}: {v}'{nl}" for k, v in headers.items())
+    curl_payload = (
+        f"{tl}-d '{json.dumps(payload_example)}'{nl}" if payload_example else ""
+    )
+    curl_sample = (
+        f"curl -X {method.upper()} {base_url}{path}{query_string}{nl}"
+        f"{curl_headers}{curl_payload}"
+    ).strip()
+
+    # Generating Python example
+    python_sample = (
+        f"import requests{nl}import json{nl}{nl}"
+        f"url = '{base_url}{path}{query_string}'{nl}"
+        f"payload = {json.dumps(payload_example) if payload_example else {}}{nl}"
+        f"headers = {json.dumps(headers)}{nl}{nl}"
+        f"response = requests.{method.lower()}(url, headers=headers, json=payload){nl}"
+        f"print(response.text)"
+    )
+
+    operation["x-code-samples"] = [
+        {"lang": "curl", "source": curl_sample, "label": "Curl"},
+        {"lang": "python", "source": python_sample, "label": "Python3"},
     ]
 
 
-# Custom OpenAPI schema function
+# Custom OpenAPI schema generator
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
 
     openapi_schema = get_openapi(
-        title=settings.PROJECT_NAME,
-        version=settings.API_VERSION,
+        title="Journal App API",
+        version="1.0.0",
         summary=summary,
         description=description,
         tags=tags_metadata,
         routes=app.routes,
-        contact={
-            "name": "Muzaffar Shaikh",
-            "email": "muzaffarshaikh0201@gmail.com",
-        },
+        contact={"name": "Muzaffar Shaikh", "email": "muzaffarshaikh0201@gmail.com"},
     )
     openapi_schema["info"]["x-logo"] = {
-        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
+        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png",
     }
 
-    for route in app.routes:
-        if (
-            ".json" not in route.path
-            and ".yaml" not in route.path
-            and "/docs" not in route.path
-            and "/docs/oauth2-redirect" not in route.path
-            and "/redoc" not in route.path
-        ):
-            for method in route.methods:
-                if method.lower() in openapi_schema["paths"][route.path]:
-                    code_samples = get_code_samples(route=route, method=method)
-                    openapi_schema["paths"][route.path][method.lower()][
-                        "x-codeSamples"
-                    ] = code_samples
+    components = openapi_schema.get("components", {})
+    for path, path_item in openapi_schema.get("paths", {}).items():
+        for method, operation in path_item.items():
+            if method in {"get", "post", "put", "delete", "patch"}:
+                generate_code_samples(path, method, operation, components)
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
 
+# Seting the custom OpenAPI function
 app.openapi = custom_openapi

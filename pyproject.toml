@@ -9,10 +9,15 @@ readme = "README.md"
 include = "src"
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.12"
 fastapi = {extras = ["standard"], version = "^0.115.6"}
 pydantic-settings = "^2.7.0"
 coloredlogs = "^15.0.1"
+psycopg2 = "2.9.10"
+sqlalchemy = "^2.0.36"
+bcrypt = "3.2.2"
+python-jose = "^3.3.0"
+passlib = "^1.7.4"
 
 [tool.poetry.scripts]
 api = "src.run:run"

@@ -23,6 +23,9 @@ class CustomJSONResponse(JSONResponse):
             `error` (dict | None): Error details, if any (optional).
             `meta` (dict | None): Additional metadata, if any (optional).
             `**kwargs`: Additional arguments passed to the parent JSONResponse.
+
+        # Returns:
+            `CustomJSONResponse:` A JSON response with a dict and the provided HTTP status code.
         """
         content = {
             "success": success,
@@ -33,3 +36,28 @@ class CustomJSONResponse(JSONResponse):
             "meta": meta,
         }
         super().__init__(content=content, status_code=status_code, **kwargs)
+
+
+class CustomBackendErrorResponse(JSONResponse):
+    def __init__(self, **kwargs):
+        """
+        Initializes the custom JSON response with the provided parameters.
+
+        # Args:
+            `**kwargs`: Additional arguments passed to the parent JSONResponse.
+
+        # Returns:
+            `CustomBackendErrorResponse:` A JSON response with a dict and HTTP status code 500.
+        """
+        content = {
+            "success": False,
+            "status_code": 500,
+            "message": "Internal Server Error",
+            "data": None,
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "details": "An unexpected error occurred. Please try again later.",
+            },
+            "meta": None,
+        }
+        super().__init__(content=content, status_code=500, **kwargs)

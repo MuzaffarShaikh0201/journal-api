@@ -1,5 +1,7 @@
+from sqlalchemy.orm import Query
 from sqlalchemy import create_engine
 from contextlib import contextmanager
+from fastapi import HTTPException, status
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 from ..core.config import settings
@@ -14,12 +16,12 @@ engine = create_engine(
     pool_size=20,
     max_overflow=20,
 )
-Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
 def get_db():
-    db = Session()
+    db = SessionLocal()
     try:
         yield db
     finally:
@@ -28,8 +30,12 @@ def get_db():
 
 @contextmanager
 def temp_session():
-    session = Session()
+    session = SessionLocal()
     try:
         yield session
     finally:
         session.close()
+
+
+def authorized_query(query, user_id: int):
+    pass

@@ -1,6 +1,5 @@
+from typing import Dict, TypedDict
 from pydantic import BaseModel, Field
-from datetime import datetime
-from typing import Dict, Any, List, TypedDict
 
 from .default_schemas import (
     SuccessfulResponse,
@@ -17,6 +16,11 @@ class TokenData(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+
+
+class SessionData(TypedDict):
+    session_id: str
+    user_id: int
 
 
 class LoginSuccessfulResponse(SuccessfulResponse):

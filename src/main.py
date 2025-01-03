@@ -12,6 +12,7 @@ from .routes import auth, utility
 from .core.config import settings
 from .middleware.logging import logger
 from .database.connect import temp_session
+from .middleware.rate_limitter import RateLimitMiddleware, rate_limiter
 
 
 @asynccontextmanager
@@ -66,6 +67,14 @@ app.add_middleware(
         "Sec-Ch-Ua-Mobile",
         "Sec-Ch-Ua-Platform",
     ],
+)
+
+# Global Rate Limiting Middleware
+app.add_middleware(
+    RateLimitMiddleware,
+    rate_limiter=rate_limiter,
+    limit=10,  # Maximum 10 requests
+    window=60,  # Per 60 seconds
 )
 
 
@@ -215,7 +224,7 @@ def generate_code_samples(
 
     operation["x-code-samples"] = [
         {"lang": "curl", "source": curl_sample, "label": "Curl"},
-        {"lang": "python", "source": python_sample, "label": "Python3"},
+        {"lang": "Python", "source": python_sample, "label": "Python3"},
     ]
 
 

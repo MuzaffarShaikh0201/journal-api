@@ -129,6 +129,17 @@ class LoginForm:
         self.password = validate_password(password)
 
 
+class RefreshTokenForm:
+    def __init__(
+        self,
+        refresh_token: str = Form(
+            ...,
+            description="Refresh Token",
+        ),
+    ):
+        self.refresh_token = refresh_token
+
+
 class RegistrationForm:
     def __init__(
         self,

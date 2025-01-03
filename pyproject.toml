@@ -18,6 +18,8 @@ sqlalchemy = "^2.0.36"
 bcrypt = "3.2.2"
 python-jose = "^3.3.0"
 passlib = "^1.7.4"
+setuptools = "^75.6.0"
+redis = "^5.2.1"
 
 [tool.poetry.scripts]
 api = "src.run:run"

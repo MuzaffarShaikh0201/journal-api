@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     API_VERSION: str = current_version
     BASE_URL: str = "0.0.0.0"
     DATABASE_URL: str
+    REDIS_URL: str
     JWT_ALGORITHM: str = "RS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7

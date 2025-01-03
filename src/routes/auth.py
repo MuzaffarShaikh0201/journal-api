@@ -9,13 +9,19 @@ from ..database.connect import get_db
 from ..middleware.logging import logger
 from ..schemas.responses import CustomJSONResponse
 from ..middleware.authorization import oauth2_scheme
-from ..schemas.requests import LoginForm, RegistrationForm
-from ..controllers.auth_services import user_login, user_registration, user_logout
+from ..schemas.requests import LoginForm, RefreshTokenForm, RegistrationForm
+from ..controllers.auth_services import (
+    user_login,
+    user_refresh_token,
+    user_registration,
+    user_logout,
+)
 from ..schemas.auth_schemas import (
     LOGIN_RESPONSE_MODEL,
     REGISTRATION_RESPONSE_MODEL,
     LOGOUT_RESPONSE_MODEL,
     TOKEN_RESPONSE_MODEL,
+    SessionData,
     TokenData,
 )
 
@@ -33,7 +39,7 @@ async def register(
     ```
     """
     logger.info("Register API is being called")
-    return user_registration(creds=creds, db=db)
+    return await user_registration(creds=creds, db=db)
 
 
 @router.post(
@@ -51,7 +57,7 @@ async def login(
     ```
     """
     logger.info("Login API is being called")
-    return user_login(
+    return await user_login(
         request=request,
         email=form_data.email,
         password=form_data.password.get_secret_value(),
@@ -84,7 +90,7 @@ async def token(
             },
         )
 
-    token_response = user_login(
+    token_response = await user_login(
         request=request, email=form_data.username, password=form_data.password, db=db
     )
 
@@ -97,9 +103,26 @@ async def token(
     return reponse
 
 
+@router.post("/refresh")
+async def refresh_auth(
+    request: Request,
+    form_data: RefreshTokenForm = Depends(),
+    db: Session = Depends(get_db),
+) -> CustomJSONResponse:
+    """
+    ```text
+    This endpoint handles the token refresh functionality.
+    ```
+    """
+    logger.info("Refresh Token API is being called")
+    return await user_refresh_token(
+        request=request, refresh_token=form_data.refresh_token, db=db
+    )
+
+
 @router.get("/logout", responses=LOGOUT_RESPONSE_MODEL)
-def logout(
-    current_session_id: int = Depends(oauth2_scheme),
+async def logout(
+    session_data: SessionData = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> CustomJSONResponse:
     """
@@ -108,4 +131,4 @@ def logout(
     ```
     """
     logger.info("Logout API is being called")
-    return user_logout(session_id=current_session_id, db=db)
+    return await user_logout(session_id=session_data["session_id"], db=db)

@@ -1,4 +1,5 @@
 from fastapi.responses import JSONResponse
+from fastapi import HTTPException
 
 
 class CustomJSONResponse(JSONResponse):
@@ -61,3 +62,38 @@ class CustomBackendErrorResponse(JSONResponse):
             "meta": None,
         }
         super().__init__(content=content, status_code=500, **kwargs)
+
+
+class CustomHttpException(HTTPException):
+    def __init__(
+        self,
+        status_code: int,
+        message: str,
+        error_code: str,
+        error_details: str,
+        **kwargs
+    ):
+        """
+        Initializes the custom HTTP exception with the provided parameters.
+
+        # Args:
+            `status_code` (int): HTTP status code of the response.
+            `message` (str): A short message describing the response.
+            `error_code` (str): A unique error code for the exception.
+            `error_details` (str): Details about the error.
+
+        # Returns:
+            `CustomHttpException:` An HTTP exception with the provided status code and message.
+        """
+        detail = {
+            "success": False,
+            "status_code": status_code,
+            "message": message,
+            "data": None,
+            "error": {
+                "code": error_code,
+                "details": error_details,
+            },
+            "meta": None,
+        }
+        super().__init__(status_code=status_code, detail=detail, **kwargs)

@@ -7,7 +7,7 @@ from fastapi.openapi.models import OAuthFlows, OAuthFlowPassword
 
 from ..database.connect import get_db
 from ..database.models import UserSession
-from ..schemas.auth_schemas import TokenData
+from ..schemas.auth_schemas import SessionData, TokenData
 from ..controllers.auth_services import decode_token
 
 
@@ -39,7 +39,7 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
             Header(description="Authorization header", example="Bearer <token>"),
         ] = None,
         db: Session = Depends(get_db),
-    ) -> HTTPException | int:
+    ) -> HTTPException | SessionData:
         try:
             authorization_header = Authorization
             ip_address = request.client.host
@@ -182,8 +182,9 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
                     )
 
             session_id: int = token_data.get("session_id")
+            user_id: int = token_data.get("user_id")
 
-            return session_id
+            return {"session_id": session_id, "user_id": user_id}
         except Exception as e:
             print("Error in OAuth2PasswordBearerHeader middleware:", e)
             return HTTPException(

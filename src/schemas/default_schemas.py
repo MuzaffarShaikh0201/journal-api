@@ -80,6 +80,18 @@ class ValidationErrorResponse(BaseModel):
     meta: None
 
 
+class TooManyRequestsError(BaseModel):
+    success: bool = False
+    status_code: int = 429
+    message: str = "Too Many Requests"
+    data: None
+    error: Dict[str, str] = {
+        "code": "TOO_MANY_REQUESTS",
+        "details": "Rate limit exceeded. Try again later.",
+    }
+    meta: None
+
+
 class BackendErrorResponse(BaseModel):
     success: bool = False
     status_code: int = 500
@@ -94,5 +106,6 @@ class BackendErrorResponse(BaseModel):
 
 HOME_RESPONSE_MODEL = {
     200: {"model": SuccessfulResponse},
+    429: {"model": TooManyRequestsError},
     500: {"model": BackendErrorResponse},
 }

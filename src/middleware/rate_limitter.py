@@ -1,5 +1,5 @@
-import redis.asyncio as redis
-from fastapi import FastAPI, Request, Response
+import redis
+from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from ..core.config import settings
@@ -8,11 +8,21 @@ from ..schemas.responses import CustomHttpException
 
 class RateLimiter:
     def __init__(
-        self, redis_url: str = "redis://localhost:6379", prefix: str = "rate_limit"
+        self,
+        redis_host: str,
+        redis_port: int,
+        redis_username: str,
+        redis_password: str,
+        prefix: str = "rate_limit",
     ):
-        self.redis_url = redis_url
         self.prefix = prefix
-        self.redis = redis.from_url(self.redis_url, decode_responses=True)
+        self.redis = redis.asyncio.Redis(
+            host=redis_host,
+            port=redis_port,
+            decode_responses=True,
+            username=redis_username,
+            password=redis_password,
+        )
 
     async def is_allowed(self, client_id: str, limit: int, window: int):
         """
@@ -52,7 +62,12 @@ class RateLimiter:
 
 
 # Initialize the rate limiter (replace with your Redis URL)
-rate_limiter = RateLimiter(redis_url=settings.REDIS_URL)
+rate_limiter = RateLimiter(
+    redis_host=settings.REDIS_HOST,
+    redis_port=settings.REDIS_PORT,
+    redis_username=settings.REDIS_USERNAME,
+    redis_password=settings.REDIS_PASSWORD,
+)
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):

@@ -13,6 +13,7 @@ class RateLimiter:
         redis_port: int,
         redis_username: str,
         redis_password: str,
+        ssl_mode: bool,
         prefix: str = "rate_limit",
     ):
         self.prefix = prefix
@@ -22,6 +23,7 @@ class RateLimiter:
             decode_responses=True,
             username=redis_username,
             password=redis_password,
+            ssl=ssl_mode,
         )
 
     async def is_allowed(self, client_id: str, limit: int, window: int):
@@ -67,6 +69,7 @@ rate_limiter = RateLimiter(
     redis_port=settings.REDIS_PORT,
     redis_username=settings.REDIS_USERNAME,
     redis_password=settings.REDIS_PASSWORD,
+    ssl_mode=settings.REDIS_SSL_MODE,
 )
 
 

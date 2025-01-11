@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int
     REDIS_USERNAME: str
     REDIS_PASSWORD: str
+    REDIS_SSL_MODE: bool = False
     SUPABASE_URL: str
     SUPABASE_KEY: str
     BUCKET_NAME: str

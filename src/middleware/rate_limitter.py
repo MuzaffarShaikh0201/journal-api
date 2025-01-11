@@ -1,3 +1,4 @@
+import ssl
 import redis
 from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -24,6 +25,7 @@ class RateLimiter:
             username=redis_username,
             password=redis_password,
             ssl=ssl_mode,
+            ssl_min_version=ssl.TLSVersion.TLSv1_3,
         )
 
     async def is_allowed(self, client_id: str, limit: int, window: int):

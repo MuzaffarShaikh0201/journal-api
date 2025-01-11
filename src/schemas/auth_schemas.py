@@ -8,6 +8,7 @@ from .default_schemas import (
     NotFoundErrorResponse,
     ConflictErrorResponse,
     ForbiddenErrorResponse,
+    TooManyRequestsError,
     ValidationErrorResponse,
     UnauthorizedErrorResponse,
 )
@@ -96,6 +97,7 @@ LOGIN_RESPONSE_MODEL = {
     401: {"model": LoginUnauthorizedErrorResponse},
     404: {"model": LoginNotFoundErrorResponse},
     422: {"model": ValidationErrorResponse},
+    429: {"model": TooManyRequestsError},
     500: {"model": LoginBackendErrorResponse},
 }
 
@@ -124,6 +126,7 @@ REGISTRATION_RESPONSE_MODEL = {
     201: {"model": RegistrationSuccessfulResponse},
     409: {"model": RegistrationConflictErrorResponse},
     422: {"model": ValidationErrorResponse},
+    429: {"model": TooManyRequestsError},
     500: {"model": RegistrationBackendErrorResponse},
 }
 
@@ -145,6 +148,7 @@ LOGOUT_RESPONSE_MODEL = {
     401: {"model": UnauthorizedErrorResponse},
     403: {"model": ForbiddenErrorResponse},
     422: {"model": ValidationErrorResponse},
+    429: {"model": TooManyRequestsError},
     500: {"model": LogoutBackendErrorResponse},
 }
 
@@ -163,6 +167,7 @@ TOKEN_RESPONSE_MODEL = {
     403: {"model": TokenForbiddenErrorResponse},
     404: {"model": LoginNotFoundErrorResponse},
     422: {"model": ValidationErrorResponse},
+    429: {"model": TooManyRequestsError},
     500: {"model": LoginBackendErrorResponse},
 }
 
@@ -180,5 +185,6 @@ REFRESH_TOKEN_RESPONSE_MODEL = {
     401: {"model": UnauthorizedErrorResponse},
     403: {"model": ForbiddenErrorResponse},
     422: {"model": ValidationErrorResponse},
+    429: {"model": TooManyRequestsError},
     500: {"model": RefreshTokenBackendErrorResponse},
 }

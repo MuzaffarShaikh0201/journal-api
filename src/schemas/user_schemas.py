@@ -5,6 +5,7 @@ from .default_schemas import (
     SuccessfulResponse,
     BackendErrorResponse,
     NotFoundErrorResponse,
+    TooManyRequestsError,
     UnauthorizedErrorResponse,
     ValidationErrorResponse,
 )
@@ -60,5 +61,6 @@ GET_USER_RESPONSE_MODEL = {
     403: {"model": ForbiddenErrorResponse},
     404: {"model": GetUserNotFoundErrorResponse},
     422: {"model": ValidationErrorResponse},
+    429: {"model": TooManyRequestsError},
     500: {"model": GetUserBackendErrorResponse},
 }

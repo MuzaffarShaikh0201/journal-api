@@ -146,6 +146,7 @@ async def user_login(
             status_code=status.HTTP_200_OK,
             message="User logged in successfully",
             data={
+                "id": session_id,
                 "access_token": access_token,
                 "refresh_token": refresh_token,
                 "token_type": "bearer",
@@ -154,7 +155,8 @@ async def user_login(
                 "user": {
                     "id": user.id,
                     "email": user.email,
-                    "username": f"{user.first_name} {user.last_name}",
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
                 },
             },
         )
@@ -318,6 +320,7 @@ async def user_refresh_token(
                     "code": "USER_NOT_FOUND_ERROR",
                     "details": "The provided user ID does not exist. Please log in again.",
                 },
+                headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
             )
 
         user_session = (
@@ -336,6 +339,7 @@ async def user_refresh_token(
                     "code": "INVALID_SESSION_ERROR",
                     "details": "The provided session is invalid. Please log in again.",
                 },
+                headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
             )
 
         logger.info("User Authorized, deleting old sessions and generating new tokens")
@@ -385,6 +389,7 @@ async def user_refresh_token(
             status_code=status.HTTP_200_OK,
             message="User logged in successfully",
             data={
+                "id": session_id,
                 "access_token": access_token,
                 "refresh_token": refresh_token,
                 "token_type": "bearer",
@@ -393,7 +398,8 @@ async def user_refresh_token(
                 "user": {
                     "id": user.id,
                     "email": user.email,
-                    "username": f"{user.first_name} {user.last_name}",
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
                 },
             },
         )

@@ -11,6 +11,15 @@ class SuccessfulResponse(BaseModel):
     meta: None
 
 
+class CreatedResponse(BaseModel):
+    success: bool = True
+    status_code: int = 201
+    message: str = "Created"
+    data: None
+    error: None
+    meta: None
+
+
 class UnauthorizedErrorResponse(BaseModel):
     success: bool = False
     status_code: int = 401

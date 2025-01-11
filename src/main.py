@@ -1,3 +1,4 @@
+import os
 import json
 from sqlalchemy import text
 from typing import Any, Dict, Tuple
@@ -8,7 +9,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 
-from .routes import auth, utility
+from .routes import utility, auth, user
 from .core.config import settings
 from .middleware.logging import logger
 from .database.connect import temp_session
@@ -26,6 +27,13 @@ async def lifespan(app: FastAPI):
             session.close()
 
         logger.info("Connected to the database successfully.")
+
+        if not os.path.isdir("keys"):
+            os.makedirs("keys")
+
+            settings.download_keys()
+            logger.info("Keys downloaded successfully.")
+
         logger.info("Application started successfully.")
         yield
     except Exception as e:
@@ -49,6 +57,7 @@ app.add_middleware(
         "Accept",
         "Accept-Encoding",
         "Accept-Language",
+        "Authorization",
         "Connection",
         "Connection-Length",
         "Connection-Type",
@@ -81,6 +90,7 @@ app.add_middleware(
 # Routes
 app.include_router(utility.router)
 app.include_router(auth.router)
+app.include_router(user.router)
 
 
 # Custom validation error handler
@@ -249,6 +259,8 @@ def custom_openapi():
     components = openapi_schema.get("components", {})
     for path, path_item in openapi_schema.get("paths", {}).items():
         for method, operation in path_item.items():
+            if path == "/auth/register" and method == "post":
+                operation["responses"].pop("200", None)
             if method in {"get", "post", "put", "delete", "patch"}:
                 generate_code_samples(path, method, operation, components)
 

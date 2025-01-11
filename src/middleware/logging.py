@@ -1,9 +1,7 @@
 import coloredlogs, logging
 
-from ..core.config import settings
-
 logging.basicConfig()
-logger = logging.getLogger(name=settings.PROJECT_NAME)
+logger = logging.getLogger(name="Journal API")
 logger.propagate = False  # Prevent logs from propagating to parent logger
 
 # Configure colored logs

@@ -20,6 +20,7 @@ python-jose = "^3.3.0"
 passlib = "^1.7.4"
 setuptools = "^75.6.0"
 redis = "^5.2.1"
+requests = "^2.32.3"
 
 [tool.poetry.scripts]
 api = "src.run:run"

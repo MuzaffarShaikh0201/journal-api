@@ -18,6 +18,7 @@ from ..controllers.auth_services import (
 )
 from ..schemas.auth_schemas import (
     LOGIN_RESPONSE_MODEL,
+    REFRESH_TOKEN_RESPONSE_MODEL,
     REGISTRATION_RESPONSE_MODEL,
     LOGOUT_RESPONSE_MODEL,
     TOKEN_RESPONSE_MODEL,
@@ -103,7 +104,7 @@ async def token(
     return reponse
 
 
-@router.post("/refresh")
+@router.post("/refresh", responses=REFRESH_TOKEN_RESPONSE_MODEL)
 async def refresh_auth(
     request: Request,
     form_data: RefreshTokenForm = Depends(),

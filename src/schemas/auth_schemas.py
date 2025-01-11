@@ -2,6 +2,7 @@ from typing import Dict, TypedDict
 from pydantic import BaseModel, Field
 
 from .default_schemas import (
+    CreatedResponse,
     SuccessfulResponse,
     BackendErrorResponse,
     NotFoundErrorResponse,
@@ -13,6 +14,7 @@ from .default_schemas import (
 
 
 class TokenData(BaseModel):
+    id: str
     access_token: str
     refresh_token: str
     token_type: str
@@ -29,12 +31,14 @@ class LoginSuccessfulResponse(SuccessfulResponse):
         ...,
         examples=[
             {
+                "id": "session_id",
                 "access_token": "user_access_token",
                 "refresh_token": "user_refresh_token",
                 "token_type": "Bearer",
             }
         ],
         json_schema_extra={
+            "id": "session_id",
             "access_token": "user_access_token",
             "refresh_token": "user_refresh_token",
             "token_type": "Bearer",
@@ -47,7 +51,8 @@ class LoginSuccessfulResponse(SuccessfulResponse):
                 "user": {
                     "id": "user_id",
                     "email": "user_email",
-                    "username": "user_name",
+                    "first_name": "user_first_name",
+                    "last_name": "user_last_name",
                 },
             }
         ],
@@ -55,7 +60,8 @@ class LoginSuccessfulResponse(SuccessfulResponse):
             "user": {
                 "id": "user_id",
                 "email": "user_email",
-                "username": "user_name",
+                "first_name": "user_first_name",
+                "last_name": "user_last_name",
             },
         },
     )
@@ -94,8 +100,7 @@ LOGIN_RESPONSE_MODEL = {
 }
 
 
-class RegistrationSuccessfulResponse(SuccessfulResponse):
-    status_code: int = 201
+class RegistrationSuccessfulResponse(CreatedResponse):
     message: str = "User registered successfully. Please login with same email."
 
 
@@ -137,6 +142,8 @@ class LogoutBackendErrorResponse(BackendErrorResponse):
 
 LOGOUT_RESPONSE_MODEL = {
     200: {"model": LogoutSuccessResponse},
+    401: {"model": UnauthorizedErrorResponse},
+    403: {"model": ForbiddenErrorResponse},
     422: {"model": ValidationErrorResponse},
     500: {"model": LogoutBackendErrorResponse},
 }
@@ -157,4 +164,21 @@ TOKEN_RESPONSE_MODEL = {
     404: {"model": LoginNotFoundErrorResponse},
     422: {"model": ValidationErrorResponse},
     500: {"model": LoginBackendErrorResponse},
+}
+
+
+class RefreshTokenBackendErrorResponse(BackendErrorResponse):
+    message: str = "Failed to verify refresh token"
+    error: Dict[str, str] = {
+        "code": "INTERNAL_SERVER_ERROR",
+        "details": "Something went wrong while verifying the refresh token. Please try again.",
+    }
+
+
+REFRESH_TOKEN_RESPONSE_MODEL = {
+    200: {"model": LoginSuccessfulResponse},
+    401: {"model": UnauthorizedErrorResponse},
+    403: {"model": ForbiddenErrorResponse},
+    422: {"model": ValidationErrorResponse},
+    500: {"model": RefreshTokenBackendErrorResponse},
 }

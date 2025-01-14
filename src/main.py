@@ -28,13 +28,6 @@ async def lifespan(app: FastAPI):
 
         logger.info("Connected to the database successfully.")
 
-        if not os.path.isdir("keys"):
-            os.makedirs("keys")
-
-            settings.download_keys()
-            logger.info("Keys downloaded successfully.")
-
-        logger.info("Application started successfully.")
         yield
     except Exception as e:
         logger.error(f"Failed to connect to the database: {e}")

@@ -36,52 +36,6 @@ class Settings(BaseSettings):
     PUBLIC_KEY_FILE: str
     DEVELOPERS_EMAIL: List[str]
 
-    def download_keys(self):
-        """
-        Downloads the keys from the supabase storage.
-        """
-        logger.info(f"Downloading keys from Supabase Storage...")
-        try:
-            public_key_file = self.PUBLIC_KEY_FILE
-            private_key_file = self.PRIVATE_KEY_FILE
-
-            if not os.path.isdir("keys"):
-                os.makedirs("keys")
-
-            headers = {
-                "Authorization": f"Bearer {self.SUPABASE_KEY}",
-            }
-            public_key_response = requests.get(
-                f"{self.SUPABASE_URL}/storage/v1/object/authenticated/{self.BUCKET_NAME}/{public_key_file}",
-                headers=headers,
-                stream=True,
-            )
-
-            with open(public_key_file, "wb") as file:
-                for chunk in public_key_response.iter_content(chunk_size=8192):
-                    file.write(chunk)
-
-            logger.info(
-                f"Public key downloaded successfully and saved as '{public_key_file}'"
-            )
-
-            private_key_response = requests.get(
-                f"{self.SUPABASE_URL}/storage/v1/object/authenticated/{self.BUCKET_NAME}/{private_key_file}",
-                headers=headers,
-                stream=True,
-            )
-
-            with open(private_key_file, "wb") as file:
-                for chunk in private_key_response.iter_content(chunk_size=8192):
-                    file.write(chunk)
-
-            logger.info(
-                f"Private key downloaded successfully and saved as '{private_key_file}'"
-            )
-        except requests.exceptions.RequestException as e:
-            logger.info(f"Error downloading key: {str(e)}")
-            raise e
-
     @cached_property
     def PRIVATE_KEY(self) -> str:
         """

@@ -24,4 +24,4 @@ async def user_profile(
     ```
     """
     logger.info("User Profile API is being called")
-    return await get_user_profile(session_id=session_data["user_id"], db=db)
+    return await get_user_profile(user_id=session_data["user_id"], db=db)

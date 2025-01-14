@@ -25,19 +25,15 @@ class Settings(BaseSettings):
     API_VERSION: str = current_version
     BASE_URL: str = "0.0.0.0"
     DATABASE_URL: str
-    REDIS_HOST: str
-    REDIS_PORT: int
-    REDIS_USERNAME: str
-    REDIS_PASSWORD: str
-    REDIS_SSL_MODE: bool = False
+    REDIS_URL: str
     SUPABASE_URL: str
     SUPABASE_KEY: str
     BUCKET_NAME: str
     JWT_ALGORITHM: str = "RS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    PRIVATE_KEY_FILE: str = "keys/private_key.pem"
-    PUBLIC_KEY_FILE: str = "keys/public_key.pem"
+    PRIVATE_KEY_FILE: str
+    PUBLIC_KEY_FILE: str
     DEVELOPERS_EMAIL: List[str]
 
     def download_keys(self):

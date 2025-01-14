@@ -46,7 +46,7 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
 
             if not authorization_header:
                 if self.auto_error:
-                    return HTTPException(
+                    raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail={
                             "success": False,
@@ -65,7 +65,7 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
 
             if not param or scheme.lower() != "bearer":
                 if self.auto_error:
-                    return HTTPException(
+                    raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail={
                             "success": False,
@@ -84,7 +84,7 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
 
             if not token_data:
                 if self.auto_error:
-                    return HTTPException(
+                    raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail={
                             "success": False,
@@ -101,7 +101,7 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
 
             if token_data == "expired_token":
                 if self.auto_error:
-                    return HTTPException(
+                    raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail={
                             "success": False,
@@ -121,7 +121,7 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
                 for keys in ["user_id", "session_id", "allowed_ips"]
             ):
                 if self.auto_error:
-                    return HTTPException(
+                    raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail={
                             "success": False,
@@ -148,7 +148,7 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
                 or user_session.access_token != param
             ):
                 if self.auto_error:
-                    return HTTPException(
+                    raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail={
                             "success": False,
@@ -165,7 +165,7 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
 
             if ip_address not in token_data.get("allowed_ips", []):
                 if self.auto_error:
-                    return HTTPException(
+                    raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail={
                             "success": False,
@@ -187,7 +187,7 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
             return {"session_id": session_id, "user_id": user_id}
         except Exception as e:
             print("Error in OAuth2PasswordBearerHeader middleware:", e)
-            return HTTPException(
+            raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail={
                     "success": False,

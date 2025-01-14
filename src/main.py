@@ -2,7 +2,7 @@ import os
 import json
 from sqlalchemy import text
 from typing import Any, Dict, Tuple
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from fastapi.openapi.utils import get_openapi
@@ -129,6 +129,15 @@ async def internal_server_error_handler(request: Request, exc: Exception):
         "meta": None,
     }
     return JSONResponse(status_code=500, content=response)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    logger.error(f"HTTPException: {exc.detail}")
+
+    return JSONResponse(
+        status_code=exc.status_code, content=exc.detail, headers=exc.headers
+    )
 
 
 # Custom OpenAPI schema metadata

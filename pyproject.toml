@@ -24,7 +24,6 @@ requests = "^2.32.3"
 
 [tool.poetry.scripts]
 api = "src.run:run"
-dev = "src.run:dev"
 
 [build-system]
 requires = ["poetry-core"]

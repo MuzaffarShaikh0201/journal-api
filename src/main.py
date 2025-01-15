@@ -1,17 +1,16 @@
-import os
 import json
 from sqlalchemy import text
 from typing import Any, Dict, Tuple
-from fastapi import FastAPI, HTTPException, Request
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 
-from .routes import utility, auth, user
 from .core.config import settings
 from .middleware.logging import logger
+from .routes import utility, auth, user
 from .database.connect import temp_session
 from .middleware.rate_limitter import RateLimitMiddleware, rate_limiter
 

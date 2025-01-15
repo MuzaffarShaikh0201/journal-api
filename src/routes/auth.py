@@ -95,8 +95,9 @@ async def token(
         request=request, email=form_data.username, password=form_data.password, db=db
     )
 
+    token_data = json.loads(token_response.body.decode("utf-8"))
+
     if token_response.status_code == 200:
-        token_data = json.loads(token_response.body.decode("utf-8"))
         reponse = TokenData(**token_data["data"])
     else:
         reponse = token_data

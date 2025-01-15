@@ -1,13 +1,7 @@
-import os
 import warnings
-import requests
 from typing import List
-from pathlib import Path
 import importlib.metadata
-from functools import cached_property
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from ..middleware.logging import logger
 
 
 # Get the current version of the project from the package metadata
@@ -29,36 +23,14 @@ class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_KEY: str
     BUCKET_NAME: str
-    JWT_ALGORITHM: str = "RS256"
+    JWT_ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     PRIVATE_KEY_FILE: str
     PUBLIC_KEY_FILE: str
+    PRIVATE_KEY: str
+    PUBLIC_KEY: str
     DEVELOPERS_EMAIL: List[str]
-
-    @cached_property
-    def PRIVATE_KEY(self) -> str:
-        """
-        Reads and returns the private key from the file.
-        """
-        private_key_path = Path(self.PRIVATE_KEY_FILE)
-        if not private_key_path.is_file():
-            raise FileNotFoundError(
-                f"Private key file not found: {self.PRIVATE_KEY_FILE}"
-            )
-        return private_key_path.read_text()
-
-    @cached_property
-    def PUBLIC_KEY(self) -> str:
-        """
-        Reads and returns the public key from the file.
-        """
-        public_key_path = Path(self.PUBLIC_KEY_FILE)
-        if not public_key_path.is_file():
-            raise FileNotFoundError(
-                f"Public key file not found: {self.PUBLIC_KEY_FILE}"
-            )
-        return public_key_path.read_text()
 
     model_config = SettingsConfigDict(
         env_file=".env", extra="ignore", env_file_encoding="utf-8"

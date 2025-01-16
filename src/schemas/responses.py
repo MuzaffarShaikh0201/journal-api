@@ -1,5 +1,5 @@
-from fastapi.responses import JSONResponse
 from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 
 
 class CustomJSONResponse(JSONResponse):
@@ -71,6 +71,7 @@ class CustomHttpException(HTTPException):
         message: str,
         error_code: str,
         error_details: str,
+        headers: dict = None,
         **kwargs
     ):
         """
@@ -96,4 +97,11 @@ class CustomHttpException(HTTPException):
             },
             "meta": None,
         }
-        super().__init__(status_code=status_code, detail=detail, **kwargs)
+
+        self.status_code = status_code
+        self.detail = detail
+        self.headers = headers or {}
+
+        super().__init__(
+            status_code=status_code, detail=detail, headers=headers, **kwargs
+        )

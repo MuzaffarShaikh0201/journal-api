@@ -1,13 +1,14 @@
-from typing import Annotated, Optional
+from typing import Annotated
 from sqlalchemy.orm import Session
-from fastapi.security import OAuth2, OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer
 from fastapi.security.utils import get_authorization_scheme_param
 from fastapi import Request, HTTPException, status, Depends, Header
-from fastapi.openapi.models import OAuthFlows, OAuthFlowPassword
+
 
 from ..database.connect import get_db
 from ..database.models import UserSession
-from ..schemas.auth_schemas import SessionData, TokenData
+from ..schemas.auth_schemas import SessionData
+from ..schemas.responses import CustomHttpException
 from ..controllers.auth_services import decode_token
 
 
@@ -46,74 +47,42 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
 
             if not authorization_header:
                 if self.auto_error:
-                    raise HTTPException(
+                    raise CustomHttpException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail={
-                            "success": False,
-                            "status_code": status.HTTP_401_UNAUTHORIZED,
-                            "message": "Unauthorized",
-                            "data": None,
-                            "error": {
-                                "code": "UNAUTHORIZED",
-                                "details": "Missing Authorization header. Please provide a valid Bearer token.",
-                            },
-                            "meta": None,
-                        },
+                        message="Unauthorized",
+                        error_code="UNAUTHORIZED",
+                        error_details="Missing Authorization header. Please provide a valid Bearer token.",
                     )
 
             scheme, param = get_authorization_scheme_param(authorization_header)
 
             if not param or scheme.lower() != "bearer":
                 if self.auto_error:
-                    raise HTTPException(
+                    raise CustomHttpException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail={
-                            "success": False,
-                            "status_code": status.HTTP_401_UNAUTHORIZED,
-                            "message": "Unauthorized",
-                            "data": None,
-                            "error": {
-                                "code": "UNAUTHORIZED",
-                                "details": "Invalid Authorization header. Please provide a valid Bearer token.",
-                            },
-                            "meta": None,
-                        },
+                        message="Unauthorized",
+                        error_code="UNAUTHORIZED",
+                        error_details="Invalid Authorization header. Please provide a valid Bearer token.",
                     )
 
             token_data = decode_token(token=param)
 
             if not token_data:
                 if self.auto_error:
-                    raise HTTPException(
+                    raise CustomHttpException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail={
-                            "success": False,
-                            "status_code": status.HTTP_401_UNAUTHORIZED,
-                            "message": "Unauthorized",
-                            "data": None,
-                            "error": {
-                                "code": "UNAUTHORIZED",
-                                "details": "Invalid token. Please provide a valid Bearer token.",
-                            },
-                            "meta": None,
-                        },
+                        message="Unauthorized",
+                        error_code="UNAUTHORIZED",
+                        error_details="Invalid token. Please provide a valid Bearer token.",
                     )
 
             if token_data == "expired_token":
                 if self.auto_error:
-                    raise HTTPException(
+                    raise CustomHttpException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail={
-                            "success": False,
-                            "status_code": status.HTTP_401_UNAUTHORIZED,
-                            "message": "Unauthorized",
-                            "data": None,
-                            "error": {
-                                "code": "UNAUTHORIZED",
-                                "details": "Token expired. Please refresh the token or login again.",
-                            },
-                            "meta": None,
-                        },
+                        message="Unauthorized",
+                        error_code="UNAUTHORIZED",
+                        error_details="Token expired. Please refresh the token or login again.",
                     )
 
             if not all(
@@ -121,19 +90,11 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
                 for keys in ["user_id", "session_id", "allowed_ips"]
             ):
                 if self.auto_error:
-                    raise HTTPException(
+                    raise CustomHttpException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail={
-                            "success": False,
-                            "status_code": status.HTTP_401_UNAUTHORIZED,
-                            "message": "Unauthorized",
-                            "data": None,
-                            "error": {
-                                "code": "UNAUTHORIZED",
-                                "details": "Invalid token structure. Please provide a valid Bearer token.",
-                            },
-                            "meta": None,
-                        },
+                        message="Unauthorized",
+                        error_code="UNAUTHORIZED",
+                        error_details="Invalid token structure. Please provide a valid Bearer token.",
                     )
 
             user_session = (
@@ -148,36 +109,20 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
                 or user_session.access_token != param
             ):
                 if self.auto_error:
-                    raise HTTPException(
+                    raise CustomHttpException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail={
-                            "success": False,
-                            "status_code": status.HTTP_401_UNAUTHORIZED,
-                            "message": "Unauthorized",
-                            "data": None,
-                            "error": {
-                                "code": "UNAUTHORIZED",
-                                "details": "Invalid token data. Please provide a valid Bearer token.",
-                            },
-                            "meta": None,
-                        },
+                        message="Unauthorized",
+                        error_code="UNAUTHORIZED",
+                        error_details="Invalid token data. Please provide a valid Bearer token.",
                     )
 
             if ip_address not in token_data.get("allowed_ips", []):
                 if self.auto_error:
-                    raise HTTPException(
+                    raise CustomHttpException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail={
-                            "success": False,
-                            "status_code": status.HTTP_403_FORBIDDEN,
-                            "message": "Forbidden",
-                            "data": None,
-                            "error": {
-                                "code": "FORBIDDEN",
-                                "details": "Access from this IP address is not allowed. Please contact support if needed.",
-                            },
-                            "meta": None,
-                        },
+                        message="Forbidden",
+                        error_code="FORBIDDEN",
+                        error_details="Access from this IP address is not allowed. Please contact support if needed.",
                         headers={"X-RateLimit-Policy": "IP-Restriction"},
                     )
 
@@ -185,21 +130,16 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
             user_id: int = token_data.get("user_id")
 
             return {"session_id": session_id, "user_id": user_id}
+        except CustomHttpException as e:
+            print("Error in OAuth2PasswordBearerHeader middleware:", e)
+            raise e
         except Exception as e:
             print("Error in OAuth2PasswordBearerHeader middleware:", e)
-            raise HTTPException(
+            raise CustomHttpException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={
-                    "success": False,
-                    "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Internal Server Error",
-                    "data": None,
-                    "error": {
-                        "code": "INTERNAL_SERVER_ERROR",
-                        "details": "An unexpected error occurred. Please try again later or contact support if the issue persists.",
-                    },
-                    "meta": None,
-                },
+                message="Internal Server Error",
+                error_code="INTERNAL_SERVER_ERROR",
+                error_details="An unexpected error occurred. Please try again later or contact support if the issue persists.",
             )
         finally:
             db.close()

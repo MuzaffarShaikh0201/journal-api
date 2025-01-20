@@ -120,7 +120,7 @@ class OAuth2PasswordBearerHeader(OAuth2PasswordBearer):
             #             headers={"X-RateLimit-Policy": "IP-Restriction"},
             #         )
 
-            if user_session.user_id != int(token_data.get("sub")):
+            if user_session.user.email != token_data.get("sub"):
                 if self.auto_error:
                     raise CustomHttpException(
                         status_code=status.HTTP_403_FORBIDDEN,

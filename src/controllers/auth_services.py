@@ -109,7 +109,7 @@ async def user_login(email: str, password: str, db: Session) -> CustomJSONRespon
         # Generating tokens with session ID in the claims
         token_claims = {
             "jti": session_id,
-            "sub": str(user.id),
+            "sub": user.email,
             "iat": datetime.now(timezone.utc),
         }
         access_token = create_token(
@@ -301,13 +301,11 @@ async def user_refresh_token(refresh_token: str, db: Session) -> CustomJSONRespo
         #     )
 
         token_session_id = token_data.get("jti")
-        token_user_id = int(token_data.get("sub"))
+        token_user_email = token_data.get("sub")
 
         user_session = (
             db.query(UserSession)
-            .filter(
-                UserSession.id == token_session_id, UserSession.user_id == token_user_id
-            )
+            .filter(UserSession.id == token_session_id)
             .one_or_none()
         )
 
@@ -324,7 +322,7 @@ async def user_refresh_token(refresh_token: str, db: Session) -> CustomJSONRespo
                 headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
             )
 
-        if user_session.user_id != token_user_id:
+        if user_session.user.email != token_user_email:
             logger.error("User session mismatch")
             return CustomJSONResponse(
                 success=False,
@@ -339,7 +337,7 @@ async def user_refresh_token(refresh_token: str, db: Session) -> CustomJSONRespo
 
         logger.info("User Authorized, deleting old sessions and generating new tokens")
 
-        user = db.query(User).filter(User.id == token_user_id).one()
+        user = db.query(User).filter(User.email == token_user_email).one()
 
         # Deleting all existing sessions for the user
         db.query(UserSession).filter(UserSession.user_id == user.id).delete()
@@ -351,7 +349,7 @@ async def user_refresh_token(refresh_token: str, db: Session) -> CustomJSONRespo
         # Generating tokens with session ID in the claims
         token_claims = {
             "jti": session_id,
-            "sub": user.id,
+            "sub": user.email,
             "iat": datetime.now(timezone.utc),
         }
 

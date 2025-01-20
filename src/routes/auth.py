@@ -48,7 +48,6 @@ async def register(
     responses=LOGIN_RESPONSE_MODEL,
 )
 async def login(
-    request: Request,
     form_data: LoginForm = Depends(),
     db: Session = Depends(get_db),
 ) -> CustomJSONResponse:
@@ -59,7 +58,6 @@ async def login(
     """
     logger.info("Login API is being called")
     return await user_login(
-        request=request,
         email=form_data.email,
         password=form_data.password.get_secret_value(),
         db=db,
@@ -68,7 +66,6 @@ async def login(
 
 @router.post("/token", responses=TOKEN_RESPONSE_MODEL)
 async def token(
-    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(get_db),
 ) -> TokenData:
@@ -92,7 +89,7 @@ async def token(
         )
 
     token_response = await user_login(
-        request=request, email=form_data.username, password=form_data.password, db=db
+        email=form_data.username, password=form_data.password, db=db
     )
 
     token_data = json.loads(token_response.body.decode("utf-8"))
@@ -107,7 +104,6 @@ async def token(
 
 @router.post("/refresh", responses=REFRESH_TOKEN_RESPONSE_MODEL)
 async def refresh_auth(
-    request: Request,
     form_data: RefreshTokenForm = Depends(),
     db: Session = Depends(get_db),
 ) -> CustomJSONResponse:
@@ -117,9 +113,7 @@ async def refresh_auth(
     ```
     """
     logger.info("Refresh Token API is being called")
-    return await user_refresh_token(
-        request=request, refresh_token=form_data.refresh_token, db=db
-    )
+    return await user_refresh_token(refresh_token=form_data.refresh_token, db=db)
 
 
 @router.get("/logout", responses=LOGOUT_RESPONSE_MODEL)

@@ -1,21 +1,20 @@
 import uuid
 from jose import jwt
 from sqlalchemy.orm import Session
-from pydantic import EmailStr, SecretStr
 from fastapi import status, Request
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, Literal
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 
 from ..core.config import settings
 from ..middleware.logging import logger
-from ..schemas.auth_schemas import TokenData
 from ..database.models import User, UserSession
+from ..schemas.requests import RegistrationForm
 from ..schemas.responses import CustomJSONResponse
-from ..schemas.requests import RegistrationForm, LoginForm
 
 
-password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+schemes = ["bcrypt"]
+password_context = CryptContext(schemes=schemes, deprecated="auto")
 
 
 def create_token(data: Dict, expires_delta: timedelta) -> str:
@@ -65,9 +64,7 @@ def decode_token(token: str) -> Dict[str, Any] | Literal["expired_token"] | None
         return None
 
 
-async def user_login(
-    request: Request, email: str, password: str, db: Session
-) -> CustomJSONResponse:
+async def user_login(email: str, password: str, db: Session) -> CustomJSONResponse:
     logger.info(f"User login execution started - email: {email}")
 
     try:
@@ -111,9 +108,9 @@ async def user_login(
 
         # Generating tokens with session ID in the claims
         token_claims = {
-            "user_id": user.id,
-            "session_id": session_id,
-            "allowed_ips": [request.client.host],
+            "jti": session_id,
+            "sub": str(user.id),
+            "iat": datetime.now(timezone.utc),
         }
         access_token = create_token(
             data=token_claims,
@@ -247,9 +244,7 @@ async def user_registration(creds: RegistrationForm, db: Session) -> CustomJSONR
         logger.info("User registration execution completed")
 
 
-async def user_refresh_token(
-    request: Request, refresh_token: str, db: Session
-) -> CustomJSONResponse:
+async def user_refresh_token(refresh_token: str, db: Session) -> CustomJSONResponse:
     """
     Verifies the refresh token and generates new access and refresh tokens.
     # Args:
@@ -272,7 +267,7 @@ async def user_refresh_token(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 message="Invalid refresh token",
                 error={
-                    "code": "INVALID_TOKEN_ERROR",
+                    "code": "UNAUTHORIZED",
                     "details": "The provided refresh token is invalid. Please log in again.",
                 },
                 headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
@@ -285,47 +280,34 @@ async def user_refresh_token(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 message="Refresh token expired",
                 error={
-                    "code": "EXPIRED_TOKEN_ERROR",
+                    "code": "UNAUTHORIZED",
                     "details": "The provided refresh token has expired. Please log in again.",
                 },
                 headers={"WWW-Authenticate": 'Bearer error="expired_token"'},
             )
 
-        allowed_ipaddress = token_data.get("allowed_ips", [])
+        # allowed_ipaddress = token_data.get("allowed_ips", [])
 
-        if request.client.host not in allowed_ipaddress:
-            logger.error("Invalid IP address")
-            return CustomJSONResponse(
-                success=False,
-                status_code=status.HTTP_403_FORBIDDEN,
-                message="Invalid IP address",
-                error={
-                    "code": "FORBIDDEN_ERROR",
-                    "details": "The provided IP address is not authorized to access this resource.",
-                },
-            )
+        # if request.client.host not in allowed_ipaddress:
+        #     logger.error("Invalid IP address")
+        #     return CustomJSONResponse(
+        #         success=False,
+        #         status_code=status.HTTP_403_FORBIDDEN,
+        #         message="Invalid IP address",
+        #         error={
+        #             "code": "FORBIDDEN_ERROR",
+        #             "details": "The provided IP address is not authorized to access this resource.",
+        #         },
+        #     )
 
-        token_session_id = token_data.get("session_id")
-        token_user_id = token_data.get("user_id")
-
-        user = db.query(User).filter(User.id == token_user_id).first()
-
-        if not user:
-            logger.error("User not found")
-            return CustomJSONResponse(
-                success=False,
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                message="User not found",
-                error={
-                    "code": "USER_NOT_FOUND_ERROR",
-                    "details": "The provided user ID does not exist. Please log in again.",
-                },
-                headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
-            )
+        token_session_id = token_data.get("jti")
+        token_user_id = int(token_data.get("sub"))
 
         user_session = (
             db.query(UserSession)
-            .filter(UserSession.id == token_session_id, UserSession.user_id == user.id)
+            .filter(
+                UserSession.id == token_session_id, UserSession.user_id == token_user_id
+            )
             .one_or_none()
         )
 
@@ -336,13 +318,28 @@ async def user_refresh_token(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 message="Invalid session",
                 error={
-                    "code": "INVALID_SESSION_ERROR",
+                    "code": "UNAUTHORIZED",
                     "details": "The provided session is invalid. Please log in again.",
                 },
                 headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
             )
 
+        if user_session.user_id != token_user_id:
+            logger.error("User session mismatch")
+            return CustomJSONResponse(
+                success=False,
+                status_code=status.HTTP_403_FORBIDDEN,
+                message="Invalid session",
+                error={
+                    "code": "FORBIDDEN",
+                    "details": "Access from this user is not allowed. Please contact support if needed.",
+                },
+                headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
+            )
+
         logger.info("User Authorized, deleting old sessions and generating new tokens")
+
+        user = db.query(User).filter(User.id == token_user_id).one()
 
         # Deleting all existing sessions for the user
         db.query(UserSession).filter(UserSession.user_id == user.id).delete()
@@ -353,9 +350,9 @@ async def user_refresh_token(
 
         # Generating tokens with session ID in the claims
         token_claims = {
-            "user_id": user.id,
-            "session_id": session_id,
-            "allowed_ips": [request.client.host],
+            "jti": session_id,
+            "sub": user.id,
+            "iat": datetime.now(timezone.utc),
         }
 
         access_token = create_token(
